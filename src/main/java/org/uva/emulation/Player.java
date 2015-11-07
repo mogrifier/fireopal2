@@ -19,7 +19,7 @@ import static org.uva.emulation.Player.FileType.*;
 public class Player {
     private OPL3 opl = new OPL3();
     private SourceDataLine sourceDataLine;
-    private CPlayer p;
+    private CPlayer cPlayer;
     public byte[][] musicBuffer;
     private int musicBufferLength;
     private int entireMusicLength;
@@ -45,14 +45,16 @@ public class Player {
 
     public Player(String filePath) {
         musicFile = loadFile(new File(filePath));
+
+        getCorrespondingPlayer(musicFile);
     }
 
     public void playFirst() {
-        initPlay();
+        reset();
         setMusicBufferLength();
         startSourceDataLine();
         playBuffering();
-        playBuffered();
+        //playBuffered();
         stopSourceDataLine();
     }
 
@@ -84,36 +86,33 @@ public class Player {
         }
     }
 
-    private void setCPlayer() {
-        switch (1) {
-            case 1:
-                p = new CmidPlayer(opl);
+    private CPlayer getCorrespondingPlayer(MusicFile musicFile) {
+        switch (musicFile.getFileType()) {
+            case MID:
+                cPlayer = new CmidPlayer(opl);
                 break;
-            case 2:
-                p = new CdroPlayer(opl, true);
+            case DRO1:
+                cPlayer = new CdroPlayer(opl, true);
                 break;
-            case 3:
-                p = new Cdro2Player(opl, true);
+            case DRO2:
+                cPlayer = new Cdro2Player(opl, true);
         }
         try {
-            p.load(musicFile.getFileBuffer());
+            cPlayer.load(this.musicFile.getFileBuffer());
+            return cPlayer;
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
 
     private void setMusicBufferLength() {
-        setCPlayer();
-        entireMusicLength = 0;
-
         int var1;
         double var2;
-        for (musicBufferLength = 0; p.update(); ++musicBufferLength) {
-            var2 = 1.0D / (double) p.getrefresh();
+        for (musicBufferLength = 0; cPlayer.update(); ++musicBufferLength) {
+            var2 = 1.0D / (double) cPlayer.getrefresh();
             var1 = 4 * (int) (49700.0D * var2);
             entireMusicLength += var1;
         }
-
         var2 = 0.1D;
 
         for (int var4 = 0; var4 < 30; ++var4) {
@@ -124,15 +123,14 @@ public class Player {
     }
 
     private void startSourceDataLine() {
-        AudioFormat var1 = new AudioFormat(49700.0F, 16, 2, true, false);
-
+        AudioFormat audioFormat = new AudioFormat(49700.0F, 16, 2, true, false);
         try {
-            sourceDataLine = AudioSystem.getSourceDataLine(var1);
-            sourceDataLine.open(var1, entireMusicLength);
+            sourceDataLine = AudioSystem.getSourceDataLine(audioFormat);
+            sourceDataLine.open(audioFormat, entireMusicLength);
+            sourceDataLine.start();
         } catch (LineUnavailableException e) {
             throw new RuntimeException(e);
         }
-        sourceDataLine.start();
     }
 
     private void stopSourceDataLine() {
@@ -183,12 +181,12 @@ public class Player {
         buffersWait = 1;
         musicBuffer = new byte[musicBufferLength][];
         System.gc();
-        setCPlayer();
+        getCorrespondingPlayer(musicFile);
 
         while (true) {
             double var1;
-            if (p.update()) {
-                var1 = 1.0D / (double) p.getrefresh();
+            if (cPlayer.update()) {
+                var1 = 1.0D / (double) cPlayer.getrefresh();
                 if (!isThreadEnding && bufferStatus != Player.BufferStatus.RENDERBUFFER) {
                     readBufferChunk(var1);
                     writeAvailable();
@@ -281,16 +279,17 @@ public class Player {
         }
     }
 
-    private void initPlay() {
-        playingArrayIndex = 0;
-        playingSample = 0;
-    }
-
     private void playAgain() {
-        initPlay();
+        reset();
         startSourceDataLine();
         playBuffered();
         stopSourceDataLine();
+    }
+
+    private void reset() {
+        playingArrayIndex = 0;
+        playingSample = 0;
+        entireMusicLength = 0;
     }
 
     public enum FileType {
