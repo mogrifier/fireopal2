@@ -1,6 +1,7 @@
 package org.uva.emulation;
 
 import com.cozendey.opl3.OPL3;
+import lombok.Data;
 
 import javax.sound.sampled.*;
 import javax.swing.*;
@@ -18,9 +19,14 @@ import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryMXBean;
 import java.lang.management.MemoryUsage;
 import java.net.URISyntaxException;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Vector;
+
+import static org.apache.commons.io.FileUtils.openInputStream;
+import static org.apache.commons.io.FilenameUtils.getExtension;
+import static org.apache.commons.io.IOUtils.toByteArray;
+import static org.apache.commons.lang.StringUtils.isBlank;
+import static org.uva.emulation.Player.FileType.*;
 
 public class Player extends JApplet implements Runnable, ChangeListener, MouseListener, MenuListener, ActionListener {
     public static final int sampleRate = 49700;
@@ -32,7 +38,7 @@ public class Player extends JApplet implements Runnable, ChangeListener, MouseLi
     File currOpenDir = new File("");
     SourceDataLine sourceDataLine;
     CPlayer p;
-    byte[] fileBuffer;
+    //byte[] fileBuffer;
     public byte[][] musicBuffer;
     int musicBufferLength;
     int entireMusicLength;
@@ -71,11 +77,7 @@ public class Player extends JApplet implements Runnable, ChangeListener, MouseLi
     int refSize = 50;
     int frameWidth = 700;
     int frameHeight = 700;
-
-    public Player(String file) {
-
-    }
-
+    private MusicFile musicFile;
 
     public static void main(String[] var0) {
         if (var0.length > 0) {
@@ -83,7 +85,13 @@ public class Player extends JApplet implements Runnable, ChangeListener, MouseLi
         } else {
             System.exit(1);
         }
+    }
 
+    public Player(String filePath) {
+        if (isBlank(filePath)) {
+            throw new IllegalArgumentException("Missing file path for reading");
+        }
+        musicFile = loadFile(new File(filePath));
     }
 
     public Player() {
@@ -322,12 +330,6 @@ public class Player extends JApplet implements Runnable, ChangeListener, MouseLi
 
     }
 
-    String getExtension(String var1) {
-        StringBuffer var2 = new StringBuffer(var1);
-        int var3 = var2.lastIndexOf(".");
-        return var2.substring(var3 + 1);
-    }
-
     public void run() {
         switch (1) {
             case 1:
@@ -372,35 +374,34 @@ public class Player extends JApplet implements Runnable, ChangeListener, MouseLi
         loadFile(this.file);
     }
 
-    public void loadFile(File file) {
+    public MusicFile loadFile(File file) {
+        if (!file.exists()) {
+            throw new IllegalArgumentException("Unable to find the specified file");
+        }
         try {
-            FileInputStream var1 = new FileInputStream(file);
-            int var2 = var1.available();
-            this.fileBuffer = new byte[var2];
-            var1.read(this.fileBuffer);
-            String var3 = this.getExtension(file.getName());
-            this.setFileType(var3);
-        } catch (IOException var4) {
-            if (this.verbose >= 1) {
-                var4.printStackTrace();
+            byte[] fileBuffer = toByteArray(openInputStream(file));
+
+            switch (getExtension(file.getName()).toLowerCase()) {
+                case "laa":
+                case "cmf":
+                    fileType = MID;
+                    break;
+                case "dro":
+                    if (fileBuffer[10] == 1) {
+                        fileType = DRO1;
+                    } else if (fileBuffer[8] == 2) {
+                        fileType = DRO2;
+                    }
+                    break;
+                default:
+                    throw new IllegalStateException("Unrecognized extension file found");
             }
+            play();
+
+            return new MusicFile(file, fileType, fileBuffer);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
-
-        //this.fileNameLabel.setText(this.file.getName());
-        this.play();
-    }
-
-    public void setFileType(String var1) {
-        if (var1.toLowerCase().equals("dro")) {
-            if (this.fileBuffer[10] == 1) {
-                this.fileType = Player.FileType.DRO1;
-            } else if (this.fileBuffer[8] == 2) {
-                this.fileType = Player.FileType.DRO2;
-            }
-        } else if (var1.toLowerCase().equals("laa") || var1.toLowerCase().equals("cmf")) {
-            this.fileType = Player.FileType.MID;
-        }
-
     }
 
     void setCPlayer(boolean var1) {
@@ -419,15 +420,13 @@ public class Player extends JApplet implements Runnable, ChangeListener, MouseLi
             case 3:
                 this.p = new Cdro2Player(this.opl, var1);
         }
-
         try {
-            this.p.load(this.fileBuffer);
+            this.p.load(musicFile.getFileBuffer());
         } catch (IOException var3) {
             if (this.verbose >= 1) {
                 var3.printStackTrace();
             }
         }
-
     }
 
     void setMusicBufferLength() {
@@ -1099,5 +1098,12 @@ public class Player extends JApplet implements Runnable, ChangeListener, MouseLi
 
         private BufferStatus() {
         }
+    }
+
+    @Data
+    private static class MusicFile {
+        private final File path;
+        private final FileType fileType;
+        private final byte[] fileBuffer;
     }
 }
