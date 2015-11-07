@@ -9,6 +9,7 @@ import javax.sound.sampled.LineUnavailableException;
 import javax.sound.sampled.SourceDataLine;
 import java.io.File;
 import java.io.IOException;
+import java.util.logging.Logger;
 
 import static org.apache.commons.io.FileUtils.openInputStream;
 import static org.apache.commons.io.FilenameUtils.getExtension;
@@ -17,6 +18,7 @@ import static org.apache.commons.lang.StringUtils.isBlank;
 import static org.uva.emulation.Player.FileType.*;
 
 public class Player {
+    private static final Logger LOGGER = Logger.getLogger(Player.class.getName());
     private OPL3 opl = new OPL3();
     private SourceDataLine sourceDataLine;
     private CPlayer cPlayer;
@@ -60,6 +62,8 @@ public class Player {
     }
 
     public MusicFile loadFile(File file) {
+        LOGGER.info("Loading and define audio type for file=" + file);
+
         if (!file.exists()) {
             throw new IllegalArgumentException("Unable to find the specified file");
         }
@@ -88,8 +92,8 @@ public class Player {
     }
 
     private CPlayer loadPlayer(MusicFile musicFile) {
+        LOGGER.info("Search the corresponding player");
         CPlayer cPlayer;
-
         switch (musicFile.getFileType()) {
             case MID:
                 cPlayer = new CmidPlayer(opl);
@@ -104,6 +108,7 @@ public class Player {
                 throw new RuntimeException("Unable to find corresponding player");
         }
         try {
+            LOGGER.info("Found compatible player, loading file type=" + musicFile.getFileType());
             cPlayer.load(musicFile.getFileBuffer());
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -133,6 +138,8 @@ public class Player {
         try {
             sourceDataLine = AudioSystem.getSourceDataLine(audioFormat);
             sourceDataLine.open(audioFormat, entireMusicLength);
+
+            LOGGER.info("Starting source date line");
             sourceDataLine.start();
         } catch (LineUnavailableException e) {
             throw new RuntimeException(e);
@@ -293,6 +300,7 @@ public class Player {
     }
 
     private void reset() {
+        LOGGER.info("Reset indexes");
         playingArrayIndex = 0;
         playingSample = 0;
         entireMusicLength = 0;
