@@ -17,6 +17,8 @@ import java.io.*;
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryMXBean;
 import java.lang.management.MemoryUsage;
+import java.net.URISyntaxException;
+import java.nio.file.Paths;
 import java.util.Vector;
 
 public class Player extends JApplet implements Runnable, ChangeListener, MouseListener, MenuListener, ActionListener {
@@ -526,7 +528,9 @@ public class Player extends JApplet implements Runnable, ChangeListener, MouseLi
     }
 
     void open() {
-        JFileChooser var1 = new JFileChooser(this.currOpenDir);
+        File assetsDirectoryPath = getAssetsDirectoryPath();
+
+        JFileChooser var1 = new JFileChooser(assetsDirectoryPath.getPath());
         var1.addChoosableFileFilter(new FileNameExtensionFilter("Creative Music File (.cmf)", new String[]{"cmf"}));
         var1.setFileFilter(new FileNameExtensionFilter("LucasArts Adlib Audio (.laa) ", new String[]{"laa"}));
         var1.setFileFilter(new FileNameExtensionFilter("DOSBox Raw OPL (.dro) ", new String[]{"dro"}));
@@ -783,7 +787,7 @@ public class Player extends JApplet implements Runnable, ChangeListener, MouseLi
 
                 if (this.playingArrayIndex < this.bufferedArrayIndex) {
                     var3 = this.musicBuffer[this.playingArrayIndex].length - this.playingSample;
-                    this.writeSourceDataLine(this.musicBuffer[this.playingArrayIndex], this.playingSample, var3);
+                    //this.writeSourceDataLine(this.musicBuffer[this.playingArrayIndex], this.playingSample, var3);
                     this.sleep(1);
                     ++this.playingArrayIndex;
                 }
@@ -845,7 +849,7 @@ public class Player extends JApplet implements Runnable, ChangeListener, MouseLi
                     this.verbosePlayingLabel.setForeground(Color.RED);
                 }
 
-                this.writeSourceDataLine(var2, 0, var3);
+                //this.writeSourceDataLine(var2, 0, var3);
             }
         }
     }
@@ -975,7 +979,14 @@ public class Player extends JApplet implements Runnable, ChangeListener, MouseLi
             var3.add(var11);
             this.logFileWriter.write(var2.getName() + ";");
         }
+    }
 
+    private static File getAssetsDirectoryPath() {
+        try {
+            return new File(Paths.get(Player.class.getClassLoader().getResource(".").toURI()).getParent().getParent().toString(), "/third-party/assets");
+        } catch (URISyntaxException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     class SaveOutputStream extends FileOutputStream {

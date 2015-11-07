@@ -15,6 +15,8 @@ public class PlayerTest extends TestCase {
     }
 
     public void testApp() {
+        // new File(Paths.get(getClass().getClassLoader().getResource(".").toURI()).getParent().getParent().toString(), "/third-party/assets/dott_chron-o-john_station2.laa").exists()
+
         assertTrue(true);
     }
 }
