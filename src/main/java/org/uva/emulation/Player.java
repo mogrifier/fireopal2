@@ -73,32 +73,22 @@ public class Player extends JApplet implements Runnable, ChangeListener, MouseLi
     int buffersWait;
     int liberateBuffers;
     File file;
-    int verbose = 0;
     int refSize = 50;
     int frameWidth = 700;
     int frameHeight = 700;
     private MusicFile musicFile;
 
-    public static void main(String[] var0) {
-        if (var0.length > 0) {
-            new Player(Integer.parseInt(var0[0]));
-        } else {
-            System.exit(1);
+    public static void main(String[] args) {
+        if (args.length != 1 || isBlank(args[0])) {
+            throw new IllegalArgumentException("Missing file path for reading");
         }
+        Player player = new Player(args[0]);
+        player.play();
     }
 
     public Player(String filePath) {
-        if (isBlank(filePath)) {
-            throw new IllegalArgumentException("Missing file path for reading");
-        }
         musicFile = loadFile(new File(filePath));
-    }
 
-    public Player() {
-    }
-
-    public Player(int var1) {
-        this.verbose = var1;
         JFrame var2 = new JFrame("OPL3 Player");
         var2.setLayout((LayoutManager) null);
         var2.setBounds(0, 0, this.frameWidth, this.frameHeight);
@@ -225,27 +215,24 @@ public class Player extends JApplet implements Runnable, ChangeListener, MouseLi
         this.verbosePlayingLabel = new JLabel();
         this.verboseBufferLabel = new JLabel();
         this.verboseTotalLabel = new JLabel();
-        if (this.verbose >= 2) {
-            JLabel var22 = new JLabel("Playing: ");
-            int var23 = var10 + 3 * var4;
-            byte var25 = 100;
-            short var26 = 380;
-            var22.setBounds(var11, var23, var25, var4);
-            var1.add(var22);
-            this.verbosePlayingLabel.setBounds(var25, var23, var26, var4);
-            var1.add(this.verbosePlayingLabel);
-            var22 = new JLabel("Buffered: ");
-            var22.setBounds(var11, var23 + var4, var25, var4);
-            var1.add(var22);
-            this.verboseBufferLabel.setBounds(var25, var23 + var4, var26, var4);
-            var1.add(this.verboseBufferLabel);
-            var22 = new JLabel("Total: ");
-            var22.setBounds(var11, var23 + 2 * var4, var25, var4);
-            var1.add(var22);
-            this.verboseTotalLabel.setBounds(var25, var23 + 2 * var4, var26, var4);
-            var1.add(this.verboseTotalLabel);
-        }
-
+        JLabel var22 = new JLabel("Playing: ");
+        int var23 = var10 + 3 * var4;
+        byte var25 = 100;
+        short var26 = 380;
+        var22.setBounds(var11, var23, var25, var4);
+        var1.add(var22);
+        this.verbosePlayingLabel.setBounds(var25, var23, var26, var4);
+        var1.add(this.verbosePlayingLabel);
+        var22 = new JLabel("Buffered: ");
+        var22.setBounds(var11, var23 + var4, var25, var4);
+        var1.add(var22);
+        this.verboseBufferLabel.setBounds(var25, var23 + var4, var26, var4);
+        var1.add(this.verboseBufferLabel);
+        var22 = new JLabel("Total: ");
+        var22.setBounds(var11, var23 + 2 * var4, var25, var4);
+        var1.add(var22);
+        this.verboseTotalLabel.setBounds(var25, var23 + 2 * var4, var26, var4);
+        var1.add(this.verboseTotalLabel);
     }
 
     int getPercent(int var1, int var2) {
@@ -349,9 +336,7 @@ public class Player extends JApplet implements Runnable, ChangeListener, MouseLi
             try {
                 var1.join();
             } catch (InterruptedException var3) {
-                if (this.verbose >= 1) {
-                    var3.printStackTrace();
-                }
+                var3.printStackTrace();
             }
         }
 
@@ -405,7 +390,7 @@ public class Player extends JApplet implements Runnable, ChangeListener, MouseLi
     }
 
     void setCPlayer(boolean var1) {
-        if (this.verbose == 0) {
+        if (false) {
             var1 = false;
         }
 
@@ -422,10 +407,8 @@ public class Player extends JApplet implements Runnable, ChangeListener, MouseLi
         }
         try {
             this.p.load(musicFile.getFileBuffer());
-        } catch (IOException var3) {
-            if (this.verbose >= 1) {
-                var3.printStackTrace();
-            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 
@@ -458,12 +441,9 @@ public class Player extends JApplet implements Runnable, ChangeListener, MouseLi
         try {
             this.sourceDataLine = AudioSystem.getSourceDataLine(var1);
             this.sourceDataLine.open(var1, this.entireMusicLength);
-        } catch (LineUnavailableException var3) {
-            if (this.verbose >= 1) {
-                var3.printStackTrace();
-            }
+        } catch (LineUnavailableException e) {
+            throw new RuntimeException(e);
         }
-
         this.sourceDataLine.start();
     }
 
@@ -476,20 +456,14 @@ public class Player extends JApplet implements Runnable, ChangeListener, MouseLi
     void setTotalLabel() {
         String var1 = this.getTime(this.entireMusicLength);
         //this.totalLabel.setText(var1);
-        if (this.verbose >= 2) {
-            this.verboseTotalLabel.setText("100% / " + var1 + " / " + this.entireMusicLength / 4 + " samples in " + this.musicBuffer.length + " buffers.");
-        }
-
+        //this.verboseTotalLabel.setText("100% / " + var1 + " / " + this.entireMusicLength / 4 + " samples in " + this.musicBuffer.length + " buffers.");
     }
 
     void setBufferLabel() {
-        if (this.verbose >= 2) {
-            if (this.liberateBuffers > 1) {
-                this.verboseBufferLabel.setText(this.getPercent(this.bufferedOverallPosition, this.entireMusicLength) + "% / " + this.getTime(this.bufferedOverallPosition) + " / " + this.bufferedOverallPosition / 4 + " samples. Last liberated " + this.liberateBuffers / 2 + " buffers.");
-            } else {
-                this.verboseBufferLabel.setText(this.getPercent(this.bufferedOverallPosition, this.entireMusicLength) + "% / " + this.getTime(this.bufferedOverallPosition) + " / " + this.bufferedOverallPosition / 4 + " samples.");
-            }
-
+        if (this.liberateBuffers > 1) {
+            this.verboseBufferLabel.setText(this.getPercent(this.bufferedOverallPosition, this.entireMusicLength) + "% / " + this.getTime(this.bufferedOverallPosition) + " / " + this.bufferedOverallPosition / 4 + " samples. Last liberated " + this.liberateBuffers / 2 + " buffers.");
+        } else {
+            //this.verboseBufferLabel.setText(this.getPercent(this.bufferedOverallPosition, this.entireMusicLength) + "% / " + this.getTime(this.bufferedOverallPosition) + " / " + this.bufferedOverallPosition / 4 + " samples.");
         }
     }
 
@@ -504,14 +478,11 @@ public class Player extends JApplet implements Runnable, ChangeListener, MouseLi
 
         String var1 = this.getTime(this.playingOverallPosition);
         this.playingLabel.setText(var1);
-        if (this.verbose >= 2) {
-            if (this.isWaitingBuffer) {
-                this.verbosePlayingLabel.setText(this.getPercent(this.playingOverallPosition, this.entireMusicLength) + "% / " + var1 + " / " + this.playingOverallPosition / 4 + " samples. Waiting " + this.buffersWait + " buffers...");
-            } else {
-                this.verbosePlayingLabel.setText(this.getPercent(this.playingOverallPosition, this.entireMusicLength) + "% / " + var1 + " / " + this.playingOverallPosition / 4 + " samples.");
-            }
+        if (this.isWaitingBuffer) {
+            this.verbosePlayingLabel.setText(this.getPercent(this.playingOverallPosition, this.entireMusicLength) + "% / " + var1 + " / " + this.playingOverallPosition / 4 + " samples. Waiting " + this.buffersWait + " buffers...");
+        } else {
+            this.verbosePlayingLabel.setText(this.getPercent(this.playingOverallPosition, this.entireMusicLength) + "% / " + var1 + " / " + this.playingOverallPosition / 4 + " samples.");
         }
-
     }
 
     public void play() {
@@ -592,14 +563,8 @@ public class Player extends JApplet implements Runnable, ChangeListener, MouseLi
                     AudioSystem.write(var8, AudioFileFormat.Type.WAVE, var9);
                     var8.close();
                     var9.close();
-                } catch (IOException var13) {
-                    if (!this.isThreadEnding && this.verbose >= 1) {
-                        var13.printStackTrace();
-                    }
-
-                    if (var13.getMessage().toLowerCase().contains("access is denied")) {
-                        JOptionPane.showMessageDialog(this, "Access to write in \"" + this.currSaveDir + "\" denied");
-                    }
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
                 } finally {
                     this.statusLabel.setText("");
                     this.saveButton.setEnabled(true);
@@ -637,12 +602,9 @@ public class Player extends JApplet implements Runnable, ChangeListener, MouseLi
     void sleep(int var1) {
         try {
             Thread.sleep((long) var1);
-        } catch (InterruptedException var3) {
-            if (this.verbose >= 1) {
-                var3.printStackTrace();
-            }
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
         }
-
     }
 
     boolean isMemoryLow(double var1) {
@@ -651,10 +613,7 @@ public class Player extends JApplet implements Runnable, ChangeListener, MouseLi
         MemoryUsage var5 = var4.getHeapMemoryUsage();
         int var6 = var3 * 2 + 1048576;
         if (var5.getUsed() + (long) var6 >= var5.getMax()) {
-            if (this.verbose >= 2) {
-                System.out.println("\nMemory is low.\nMemory usage: " + var5.getUsed() + "\nMaximum available: " + var5.getMax());
-            }
-
+            System.out.println("\nMemory is low.\nMemory usage: " + var5.getUsed() + "\nMaximum available: " + var5.getMax());
             return true;
         } else {
             return false;
@@ -960,12 +919,9 @@ public class Player extends JApplet implements Runnable, ChangeListener, MouseLi
             }
 
             this.logFileWriter.close();
-        } catch (IOException var11) {
-            if (this.verbose >= 1) {
-                var11.printStackTrace();
-            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
-
         var1.add(this.examplesMenu);
     }
 
