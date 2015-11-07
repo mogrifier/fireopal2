@@ -1,22 +1,24 @@
 package org.uva.emulation;
 
-import junit.framework.Test;
-import junit.framework.TestCase;
-import junit.framework.TestSuite;
+import org.junit.Test;
 
-public class PlayerTest extends TestCase {
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
-    public PlayerTest(String testName) {
-        super(testName);
-    }
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertNotNull;
 
-    public static Test suite() {
-        return new TestSuite(PlayerTest.class);
-    }
+public class PlayerTest {
 
-    public void testApp() {
-        // new File(Paths.get(getClass().getClassLoader().getResource(".").toURI()).getParent().getParent().toString(), "/third-party/assets/dott_chron-o-john_station2.laa").exists()
+    @Test
+    public void should_read_laa_sample_file() throws Exception {
+        Path path = Paths.get(PlayerTest.class.getClassLoader().getResource("dott_chron-o-john_station2.laa").toURI());
+        Player player = new Player(path.toString());
 
-        assertTrue(true);
+        player.loadFile(path.toFile());
+        player.playFirst();
+
+        assertNotNull(player.musicBuffer);
+        assertArrayEquals(player.musicBuffer, player.musicBuffer);
     }
 }

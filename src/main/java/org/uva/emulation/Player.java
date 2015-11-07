@@ -18,6 +18,7 @@ import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryMXBean;
 import java.lang.management.MemoryUsage;
 import java.net.URISyntaxException;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Vector;
 
@@ -70,6 +71,11 @@ public class Player extends JApplet implements Runnable, ChangeListener, MouseLi
     int refSize = 50;
     int frameWidth = 700;
     int frameHeight = 700;
+
+    public Player(String file) {
+
+    }
+
 
     public static void main(String[] var0) {
         if (var0.length > 0) {
@@ -363,12 +369,16 @@ public class Player extends JApplet implements Runnable, ChangeListener, MouseLi
     }
 
     public void loadFile() {
+        loadFile(this.file);
+    }
+
+    public void loadFile(File file) {
         try {
-            FileInputStream var1 = new FileInputStream(this.file);
+            FileInputStream var1 = new FileInputStream(file);
             int var2 = var1.available();
             this.fileBuffer = new byte[var2];
             var1.read(this.fileBuffer);
-            String var3 = this.getExtension(this.file.getName());
+            String var3 = this.getExtension(file.getName());
             this.setFileType(var3);
         } catch (IOException var4) {
             if (this.verbose >= 1) {
@@ -376,7 +386,7 @@ public class Player extends JApplet implements Runnable, ChangeListener, MouseLi
             }
         }
 
-        this.fileNameLabel.setText(this.file.getName());
+        //this.fileNameLabel.setText(this.file.getName());
         this.play();
     }
 
@@ -440,7 +450,7 @@ public class Player extends JApplet implements Runnable, ChangeListener, MouseLi
             ++this.musicBufferLength;
         }
 
-        this.sliderModel.setMaximum(this.entireMusicLength - 1);
+        //this.sliderModel.setMaximum(this.entireMusicLength - 1);
     }
 
     void startSourceDataLine() {
@@ -466,7 +476,7 @@ public class Player extends JApplet implements Runnable, ChangeListener, MouseLi
 
     void setTotalLabel() {
         String var1 = this.getTime(this.entireMusicLength);
-        this.totalLabel.setText(var1);
+        //this.totalLabel.setText(var1);
         if (this.verbose >= 2) {
             this.verboseTotalLabel.setText("100% / " + var1 + " / " + this.entireMusicLength / 4 + " samples in " + this.musicBuffer.length + " buffers.");
         }
@@ -485,7 +495,7 @@ public class Player extends JApplet implements Runnable, ChangeListener, MouseLi
     }
 
     void updateBufferingStatus() {
-        this.statusLabel.setText("Buffering " + this.getPercent(this.bufferedArrayIndex - this.playingArrayIndex, this.buffersWait) + "%");
+        //this.statusLabel.setText("Buffering " + this.getPercent(this.bufferedArrayIndex - this.playingArrayIndex, this.buffersWait) + "%");
     }
 
     void setPlayingLabel() {
@@ -506,10 +516,10 @@ public class Player extends JApplet implements Runnable, ChangeListener, MouseLi
     }
 
     public void play() {
-        this.playButton.setEnabled(true);
-        this.pauseButton.setEnabled(true);
-        this.slider.setEnabled(true);
-        this.playButton.setSelected(true);
+        //this.playButton.setEnabled(true);
+        //this.pauseButton.setEnabled(true);
+        //this.slider.setEnabled(true);
+        //this.playButton.setSelected(true);
 
         while (!this.isThreadEnding && this.bufferStatus == Player.BufferStatus.RENDERBUFFER) {
             this.playFirst();
@@ -519,12 +529,12 @@ public class Player extends JApplet implements Runnable, ChangeListener, MouseLi
             this.playAgain();
         }
 
-        this.playingLabel.setText("");
-        this.totalLabel.setText("");
-        this.statusLabel.setText("");
-        this.sliderModel.setValue(0);
-        this.slider.setEnabled(false);
-        this.pauseButton.setSelected(true);
+        //this.playingLabel.setText("");
+        //this.totalLabel.setText("");
+        //this.statusLabel.setText("");
+        //this.sliderModel.setValue(0);
+        //this.slider.setEnabled(false);
+        //this.pauseButton.setSelected(true);
     }
 
     void open() {
@@ -621,7 +631,7 @@ public class Player extends JApplet implements Runnable, ChangeListener, MouseLi
         this.musicBuffer[this.bufferedArrayIndex] = this.read(var3);
         ++this.bufferedArrayIndex;
         this.bufferedOverallPosition += var3;
-        this.sliderModel.setExtent(this.sliderModel.getMaximum() - this.bufferedOverallPosition);
+        //this.sliderModel.setExtent(this.sliderModel.getMaximum() - this.bufferedOverallPosition);
         this.setBufferLabel();
     }
 
@@ -730,9 +740,9 @@ public class Player extends JApplet implements Runnable, ChangeListener, MouseLi
         this.bufferedArrayIndex = 0;
         this.bufferedOverallPosition = 0;
         this.bufferStatus = Player.BufferStatus.BUFFERING;
-        this.saveButton.setVisible(false);
-        this.verboseBufferLabel.setForeground(Color.BLACK);
-        this.statusLabel.setText("");
+        //this.saveButton.setVisible(false);
+        //this.verboseBufferLabel.setForeground(Color.BLACK);
+        //this.statusLabel.setText("");
         this.isWaitingBuffer = false;
         this.buffersWait = 1;
         this.liberateBuffers = 1;
@@ -781,9 +791,9 @@ public class Player extends JApplet implements Runnable, ChangeListener, MouseLi
                     return;
                 }
 
-                while (this.pauseButton.isSelected()) {
+                /*while (this.pauseButton.isSelected()) {
                     this.sleep(1000);
-                }
+                }*/
 
                 if (this.playingArrayIndex < this.bufferedArrayIndex) {
                     var3 = this.musicBuffer[this.playingArrayIndex].length - this.playingSample;
@@ -794,12 +804,12 @@ public class Player extends JApplet implements Runnable, ChangeListener, MouseLi
 
                 if (this.bufferStatus == Player.BufferStatus.BUFFERING) {
                     this.bufferStatus = Player.BufferStatus.BUFFERED;
-                    this.saveButton.setVisible(true);
+                    //this.saveButton.setVisible(true);
                 }
 
                 this.isWaitingBuffer = false;
-                this.statusLabel.setText("");
-                this.verbosePlayingLabel.setForeground(Color.BLACK);
+                //this.statusLabel.setText("");
+                //this.verbosePlayingLabel.setForeground(Color.BLACK);
                 return;
             }
         }
@@ -807,18 +817,20 @@ public class Player extends JApplet implements Runnable, ChangeListener, MouseLi
 
     void writeAvailable() {
         if (this.isWaitingBuffer) {
-            if (this.bufferedArrayIndex - this.playingArrayIndex < this.buffersWait && this.musicBuffer[this.playingArrayIndex - 1] != null && !this.pauseButton.isSelected()) {
+            //if (this.bufferedArrayIndex - this.playingArrayIndex < this.buffersWait && this.musicBuffer[this.playingArrayIndex - 1] != null && !this.pauseButton.isSelected()) {
+            if (this.bufferedArrayIndex - this.playingArrayIndex < this.buffersWait && this.musicBuffer[this.playingArrayIndex - 1] != null) {
                 this.updateBufferingStatus();
                 return;
             }
 
             this.isWaitingBuffer = false;
-            this.statusLabel.setText("");
-            this.verbosePlayingLabel.setForeground(Color.BLACK);
+            //this.statusLabel.setText("");
+            //this.verbosePlayingLabel.setForeground(Color.BLACK);
             this.buffersWait *= 2;
         }
 
-        if (this.pauseButton.isSelected()) {
+        //if (this.pauseButton.isSelected()) {
+        if (false) {
             this.sleep(10);
         } else {
             int var1 = this.sourceDataLine.available();
@@ -846,7 +858,7 @@ public class Player extends JApplet implements Runnable, ChangeListener, MouseLi
                     }
 
                     this.sourceDataLine.flush();
-                    this.verbosePlayingLabel.setForeground(Color.RED);
+                    //this.verbosePlayingLabel.setForeground(Color.RED);
                 }
 
                 //this.writeSourceDataLine(var2, 0, var3);
@@ -896,11 +908,11 @@ public class Player extends JApplet implements Runnable, ChangeListener, MouseLi
         this.playingArrayIndex = 0;
         this.playingSample = 0;
         this.playingOverallPosition = 0;
-        if (!this.slider.getValueIsAdjusting() && !this.positionChanged) {
+        /*if (!this.slider.getValueIsAdjusting() && !this.positionChanged) {
             this.sliderModel.setValue(0);
-        }
+        }*/
 
-        this.verbosePlayingLabel.setForeground(Color.BLACK);
+        //this.verbosePlayingLabel.setForeground(Color.BLACK);
     }
 
     void playFirst() {
