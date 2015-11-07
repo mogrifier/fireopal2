@@ -46,7 +46,8 @@ public class Player {
     public Player(String filePath) {
         musicFile = loadFile(new File(filePath));
 
-        getCorrespondingPlayer(musicFile);
+        cPlayer = loadPlayer(musicFile);
+
     }
 
     public void playFirst() {
@@ -86,7 +87,9 @@ public class Player {
         }
     }
 
-    private CPlayer getCorrespondingPlayer(MusicFile musicFile) {
+    private CPlayer loadPlayer(MusicFile musicFile) {
+        CPlayer cPlayer;
+
         switch (musicFile.getFileType()) {
             case MID:
                 cPlayer = new CmidPlayer(opl);
@@ -96,13 +99,16 @@ public class Player {
                 break;
             case DRO2:
                 cPlayer = new Cdro2Player(opl, true);
+                break;
+            default:
+                throw new RuntimeException("Unable to find corresponding player");
         }
         try {
-            cPlayer.load(this.musicFile.getFileBuffer());
-            return cPlayer;
+            cPlayer.load(musicFile.getFileBuffer());
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+        return cPlayer;
     }
 
     private void setMusicBufferLength() {
@@ -181,7 +187,7 @@ public class Player {
         buffersWait = 1;
         musicBuffer = new byte[musicBufferLength][];
         System.gc();
-        getCorrespondingPlayer(musicFile);
+        cPlayer = loadPlayer(musicFile);
 
         while (true) {
             double var1;
