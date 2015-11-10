@@ -49,10 +49,11 @@ public class Player {
         musicFile = loadFile(new File(filePath));
 
         cPlayer = loadPlayer(musicFile);
-
     }
 
     public void playFirst() {
+        LOGGER.info("Enter in playing first method");
+
         reset();
         setMusicBufferLength();
         startSourceDataLine();
@@ -92,8 +93,8 @@ public class Player {
     }
 
     private CPlayer loadPlayer(MusicFile musicFile) {
-        LOGGER.info("Search the corresponding player");
         CPlayer cPlayer;
+
         switch (musicFile.getFileType()) {
             case MID:
                 cPlayer = new CmidPlayer(opl);
@@ -117,6 +118,8 @@ public class Player {
     }
 
     private void setMusicBufferLength() {
+        LOGGER.info("Enter in music buffer length method");
+
         int var1;
         double var2;
         for (musicBufferLength = 0; cPlayer.update(); ++musicBufferLength) {
@@ -134,6 +137,8 @@ public class Player {
     }
 
     private void startSourceDataLine() {
+        LOGGER.info("Enter in start source data line method");
+
         AudioFormat audioFormat = new AudioFormat(49700.0F, 16, 2, true, false);
         try {
             sourceDataLine = AudioSystem.getSourceDataLine(audioFormat);
@@ -147,12 +152,16 @@ public class Player {
     }
 
     private void stopSourceDataLine() {
+        LOGGER.info("Enter in start source data line method");
+
         sourceDataLine.drain();
         sourceDataLine.stop();
         sourceDataLine.close();
     }
 
     private byte[] read(int var1) {
+        LOGGER.warning("Enter in read method");
+
         byte[] var2 = new byte[var1];
 
         for (int var6 = 0; var6 < var1; var6 += 4) {
@@ -164,11 +173,12 @@ public class Player {
             var2[var6 + 2] = (byte) (var5 & 255);
             var2[var6 + 3] = (byte) (var5 >> 8 & 255);
         }
-
         return var2;
     }
 
     private void readBufferChunk(double var1) {
+        LOGGER.info("Enter in read buffer chunk method");
+
         int var3 = 4 * (int) (49700.0D * var1);
 
         musicBuffer[bufferedArrayIndex] = read(var3);
@@ -178,15 +188,9 @@ public class Player {
         bufferedOverallPosition += var3;
     }
 
-    private void sleep(int var1) {
-        try {
-            Thread.sleep((long) var1);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
     private synchronized void playBuffering() {
+        LOGGER.info("Enter in play buffering method");
+
         bufferedArrayIndex = 0;
         bufferedOverallPosition = 0;
         bufferStatus = Player.BufferStatus.BUFFERING;
@@ -200,10 +204,10 @@ public class Player {
             double var1;
             if (cPlayer.update()) {
                 var1 = 1.0D / (double) cPlayer.getrefresh();
+
                 if (!isThreadEnding && bufferStatus != Player.BufferStatus.RENDERBUFFER) {
                     readBufferChunk(var1);
                     writeAvailable();
-                    sleep(1);
                     continue;
                 }
                 return;
@@ -216,14 +220,12 @@ public class Player {
                     if (!isThreadEnding && bufferStatus != Player.BufferStatus.RENDERBUFFER) {
                         readBufferChunk(var1);
                         writeAvailable();
-                        sleep(1);
                         ++var3;
                         continue;
                     }
                     return;
                 }
                 if (playingArrayIndex < bufferedArrayIndex) {
-                    sleep(1);
                     ++playingArrayIndex;
                 }
                 if (bufferStatus == Player.BufferStatus.BUFFERING) {
@@ -236,6 +238,8 @@ public class Player {
     }
 
     private void writeAvailable() {
+        LOGGER.config("Enter in write available method");
+
         if (isWaitingBuffer) {
             if (bufferedArrayIndex - playingArrayIndex < buffersWait && musicBuffer[playingArrayIndex - 1] != null) {
                 return;
@@ -268,11 +272,9 @@ public class Player {
         }
     }
 
-    private void writeSourceDataLine(byte[] var1, int var2, int var3) {
-        sourceDataLine.write(var1, var2, var3);
-    }
-
     private void playBuffered() {
+        LOGGER.config("Enter play buffered method");
+
         int var1 = 198800;
 
         while (playingArrayIndex < bufferedArrayIndex) {
@@ -281,7 +283,7 @@ public class Player {
                     return;
                 }
                 int var2 = Math.min(musicBuffer[playingArrayIndex].length - playingSample, var1);
-                writeSourceDataLine(musicBuffer[playingArrayIndex], playingSample, var2);
+                sourceDataLine.write(musicBuffer[playingArrayIndex], playingSample, var2);
                 playingSample += var2;
             }
             playingSample = 0;
@@ -293,6 +295,8 @@ public class Player {
     }
 
     private void playAgain() {
+        LOGGER.info("Enter in playing again method");
+
         reset();
         startSourceDataLine();
         playBuffered();
@@ -301,6 +305,7 @@ public class Player {
 
     private void reset() {
         LOGGER.info("Reset indexes");
+
         playingArrayIndex = 0;
         playingSample = 0;
         entireMusicLength = 0;
