@@ -2,6 +2,10 @@ package org.uva.emulation;
 
 import org.junit.Test;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
@@ -20,6 +24,11 @@ public class PlayerTest {
         player.loadFile(path.toFile());
         player.playFirst();
 
+        saveMusicBuffer(player.musicBuffer);
+
+
+
+
         assertNotNull(player.musicBuffer);
         assertEqualsBuffer(player.musicBuffer);
     }
@@ -34,5 +43,26 @@ public class PlayerTest {
         byte[] actualBuffer = acutalBuffer.toString().getBytes();
         byte[] expectedBuffer = readFileToByteArray(Paths.get(PlayerTest.class.getClassLoader().getResource("dott_chron-o-john_station2.raw").toURI()).toFile());
         assertArrayEquals(expectedBuffer, actualBuffer);
+    }
+
+
+    private void saveMusicBuffer(byte[][] musicBuffer) {
+
+        File outputFile = new File("cozendey.wav");
+
+        //let's just write the buffer to a file. it is an array of byte arrays.
+        for (int i = 0; i < musicBuffer.length; i++) {
+
+            //write each byte array
+            try (FileOutputStream outputStream = new FileOutputStream(outputFile)) {
+                outputStream.write(musicBuffer[i]);
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+
     }
 }

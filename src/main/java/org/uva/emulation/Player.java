@@ -8,7 +8,11 @@ import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.LineUnavailableException;
 import javax.sound.sampled.SourceDataLine;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static org.apache.commons.io.FileUtils.openInputStream;
@@ -49,6 +53,8 @@ public class Player {
         musicFile = loadFile(new File(filePath));
 
         cPlayer = loadPlayer(musicFile);
+
+        LOGGER.setLevel(Level.SEVERE);
     }
 
     public void playFirst() {
@@ -59,9 +65,12 @@ public class Player {
         startSourceDataLine();
         playBuffering();
         //playBuffered();
-        stopSourceDataLine();
+        //stopSourceDataLine();
     }
 
+    /*
+    No support for regular MIDI files (smf), even though OPL3 class supports. Hmm.
+     */
     public MusicFile loadFile(File file) {
         LOGGER.info("Loading and define audio type for file=" + file);
 
@@ -197,7 +206,7 @@ public class Player {
         isWaitingBuffer = false;
         buffersWait = 1;
         musicBuffer = new byte[musicBufferLength][];
-        System.gc();
+        //System.gc();
         cPlayer = loadPlayer(musicFile);
 
         while (true) {
@@ -248,6 +257,7 @@ public class Player {
             buffersWait *= 2;
         }
         int var1 = sourceDataLine.available();
+        //System.out.println(var1);
 
         if (bufferedOverallPosition >= var1 || var1 >= entireMusicLength) {
             int var3;
@@ -272,10 +282,33 @@ public class Player {
         }
     }
 
+
+    private void saveMusicBuffer() {
+
+        File outputFile = new File("cozendey.wav");
+        try  {
+            FileOutputStream outputStream = new FileOutputStream(outputFile);
+
+            //let's just write the buffer to a file. it is an array of byte arrays.
+            for (int i = 0; i < musicBuffer.length; i++) {
+
+                //write each byte array
+
+                outputStream.write(musicBuffer[i]);
+            }
+        } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+
+
+
+
     private void playBuffered() {
         LOGGER.config("Enter play buffered method");
 
-        int var1 = 198800;
+        int var1 = 19880;
 
         while (playingArrayIndex < bufferedArrayIndex) {
             while (playingSample < musicBuffer[playingArrayIndex].length) {
@@ -298,9 +331,12 @@ public class Player {
         LOGGER.info("Enter in playing again method");
 
         reset();
-        startSourceDataLine();
-        playBuffered();
-        stopSourceDataLine();
+
+        saveMusicBuffer();
+
+       // startSourceDataLine();
+       // playBuffered();
+       // stopSourceDataLine();
     }
 
     private void reset() {
