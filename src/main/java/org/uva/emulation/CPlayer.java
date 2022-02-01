@@ -13,4 +13,7 @@ interface CPlayer {
     boolean update();
 
     int getTotalMiliseconds();
+
+
+
 }

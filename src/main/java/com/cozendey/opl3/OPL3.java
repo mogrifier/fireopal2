@@ -68,6 +68,8 @@ public final class OPL3 {
             
     static int nts, dam, dvb, ryt, bd, sd, tom, tc, hh, _new, connectionsel;
     static int vibratoIndex, tremoloIndex;
+
+    boolean once = true;
     
     // The methods read() and write() are the only 
     // ones needed by the user to interface with the emulator.
@@ -75,6 +77,12 @@ public final class OPL3 {
     // with each frame being four 16-bit samples,
     // corresponding to the OPL3 four output channels CHA...CHD.
     public short[] read() {
+
+        if (once){
+            System.out.println("*****************************       done writing;  first read");
+            once = false;
+        }
+
         short[] output = new short[4];
         double[] outputBuffer = new double[4];
         double[] channelOutput;
@@ -105,12 +113,35 @@ public final class OPL3 {
         // Advances the OPL3-wide tremolo index, which is used by 
         // EnvelopeGenerator.getEnvelope() in each Operator.
         tremoloIndex++;
-        if(tremoloIndex >= OPL3Data.tremoloTable[dam].length) tremoloIndex = 0;         
-        
+        if(tremoloIndex >= OPL3Data.tremoloTable[dam].length) tremoloIndex = 0;
+/*
+        System.out.println("output data");
+        printArray(output);
+        System.out.println("");
+*/
         return output;
     }
-    
+
+    private void printArray(short[] array) {
+        for (int i = 0; i < array.length; i++) {
+            System.out.print(array[i] + " ");
+        }
+    }
+
+
+    /*
+    Data get loaded into the specified array (register) at the specified address. The address indicated what
+    function the data will be used for (it provides the context).
+     */
     public void write(int array, int address, int data) {
+
+
+        if (data > 270) {
+            System.out.println("INPUT DATA  array = " + array + "  address = " + address + "  data = " + data);
+        }
+
+
+
         // The OPL3 has two registers arrays, each with adresses ranging
         // from 0x00 to 0xF5.
         // This emulator uses one array, with the two original register arrays
@@ -474,13 +505,18 @@ abstract class Channel {
         update_FNUML8();
         update_CHD1_CHC1_CHB1_CHA1_FB3_CNT1();
     }
-    
+
+    /*
+    Basically just copies input data across all 4 channels (or zero).
+     */
     protected double[] getInFourChannels(double channelOutput) {
         double[] output = new double[4];
         
-        if( OPL3._new==0) 
+        if( OPL3._new==0)
+            //this is oppl2 mode
             output[0] = output[1] = output[2] = output[3] = channelOutput;    
         else {
+            //opl3 mode (ymf262 has 4 channels)
             output[0] = (cha==1) ? channelOutput : 0;
             output[1] = (chb==1) ? channelOutput : 0;
             output[2] = (chc==1) ? channelOutput : 0;
@@ -700,7 +736,8 @@ class Channel4op extends Channel {
     }    
 }
 
-// There's just one instance of this class, that fills the eventual gaps in the Channel array;
+// There's just one instance of this class, that fills the eventual gaps in the Channel array (with zeros)
+// why? arrays default to zero so what's point??
 class DisabledChannel extends Channel {
     DisabledChannel() {
         super(0);
@@ -873,10 +910,9 @@ class Operator {
 }
 
 
-//
-// Envelope Generator
-//
-
+/*
+Envelope Generator. This is a big important class. controls volume over time.
+ */
 
 class EnvelopeGenerator {
     final static double[] INFINITY = null;    
@@ -918,7 +954,9 @@ class EnvelopeGenerator {
        // translated as:
        totalLevel = tl*-0.75;
     }
-    
+
+    //ksl is the key scaling property. It affects volume through attenutation variable.
+    // key pitch goes up and volumes goes down.
     void setAtennuation(int f_number, int block, int ksl) {
         int hi4bits = (f_number>>6)&0x0F;
         switch(ksl) {
@@ -982,7 +1020,8 @@ class EnvelopeGenerator {
         double period10to90inSeconds = EnvelopeGeneratorData.decayAndReleaseTimeValuesTable[actualReleaseRate][1]/1000d;
         dBreleaseIncrement = OPL3Data.calculateIncrement(percentageToDB(0.1), percentageToDB(0.9), period10to90inSeconds);
     } 
-    
+
+    //utility for applying key scaling to envelope (faster attack at higher pitch)
     private int calculateActualRate(int rate, int ksr, int keyScaleNumber) {
         int rof = EnvelopeGeneratorData.rateOffset[ksr][keyScaleNumber];
         int actualRate = rate*4 + rof;
@@ -992,7 +1031,8 @@ class EnvelopeGenerator {
         if(actualRate > 63) actualRate = 63;
         return actualRate;
     }
-    
+
+    //just one value- implies changing over time
     double getEnvelope(int egt, int am) {
         // The datasheets attenuation values
         // must be halved to match the real OPL3 output.
@@ -1013,7 +1053,7 @@ class EnvelopeGenerator {
             case ATTACK:
                 // Since the attack is exponential, it will never reach 0 dB, so
                 // we´ll work with the next to maximum in the envelope resolution.
-                if(envelope<-envelopeResolution && xAttackIncrement != -EnvelopeGeneratorData.INFINITY) {
+                if(envelope<-envelopeResolution && xAttackIncrement != Double.NEGATIVE_INFINITY) {
                     // The attack is exponential.
                     envelope = -Math.pow(2,x);
                     x += xAttackIncrement;
@@ -1059,7 +1099,7 @@ class EnvelopeGenerator {
         // Ongoing original envelope
         outputEnvelope = envelope;    
         
-        //Tremolo
+        //Tremolo (affects volume)
         if(am == 1) outputEnvelope += envelopeTremolo;
 
         //Attenuation
@@ -1144,7 +1184,8 @@ class PhaseGenerator {
         // increment = 1 / (OPL3Data.sampleRate/operatorFrequency) ->
         phaseIncrement = operatorFrequency/OPL3Data.sampleRate;
     }
-    
+
+    //vib variable controls if vibrato affects phase or not
     double getPhase(int vib) {
         if(vib==1) 
             // phaseIncrement = (operatorFrequency * vibrato) / sampleRate
@@ -1167,12 +1208,15 @@ class PhaseGenerator {
 }
 
 
-//
+/*
 // Rhythm
 //
 
 // The getOperatorOutput() method in TopCymbalOperator, HighHatOperator and SnareDrumOperator 
 // were made through purely empyrical reverse engineering of the OPL3 output.
+
+Class takes 2 operators as arguments, naturally, and a base address.
+ */
 
 abstract class RhythmChannel extends Channel2op {
     
@@ -1197,7 +1241,8 @@ abstract class RhythmChannel extends Channel2op {
         return output;
     };
     
-    // Rhythm channels are always running, 
+    // Rhythm channels are always running,
+    //this is odd. creates extra data?? just has a zero envelope??
     // only the envelope is activated by the user.
     @Override
     protected void keyOn() { };
@@ -1224,7 +1269,8 @@ class TomTomTopCymbalChannel extends RhythmChannel {
                                 OPL3.topCymbalOperator);
     }
 }
- 
+
+
 class TopCymbalOperator extends Operator {
     final static int topCymbalOperatorBaseAddress = 0x15;
     
@@ -1254,7 +1300,8 @@ class TopCymbalOperator extends Operator {
         
         phase = phaseGenerator.getPhase(vib);
         
-        int waveIndex = ws & ((OPL3._new<<2) + 3); 
+        int waveIndex = ws & ((OPL3._new<<2) + 3);
+        //what waveform for drums??
         double[] waveform = OperatorData.waveforms[waveIndex];
         
         // Empirically tested multiplied phase for the Top Cymbal:
@@ -1270,6 +1317,7 @@ class TopCymbalOperator extends Operator {
     }    
 }
 
+//getGeneratorOutput is key method
 class HighHatOperator extends TopCymbalOperator {
     final static int highHatOperatorBaseAddress = 0x11;     
     
@@ -1291,6 +1339,7 @@ class HighHatOperator extends TopCymbalOperator {
     
 }
 
+//getGeneratorOutput is key method
 class SnareDrumOperator extends Operator {
     final static int snareDrumOperatorBaseAddress = 0x14;
     
@@ -1332,6 +1381,12 @@ class TomTomOperator extends Operator {
     }
 }
 
+/*
+drums only use 2op fm instead of 4op fm.
+
+Key method is a call to Channel2op.getChannelOutput. These are the samples (I think).
+
+ */
 class BassDrumChannel extends Channel2op {
     final static int bassDrumChannelBaseAddress = 6;
     final static int op1BaseAddress = 0x10; 
@@ -1356,11 +1411,9 @@ class BassDrumChannel extends Channel2op {
 }
 
 
-//
-// OPl3 Data
-//
-
-
+/*
+ OPl3 Data. Pre-loads the vibrato and tremolo tables.
+*/
 class OPL3Data {
     
     // OPL3-wide registers offsets:
@@ -1371,7 +1424,8 @@ class OPL3Data {
          _2_CONNECTIONSEL6_Offset = 0x104;        
 
     final static double sampleRate = 49700;
-    
+
+    //more static initializers to pre-load data
     static {
         loadVibratoTable();
         loadTremoloTable();
@@ -1387,7 +1441,7 @@ class OPL3Data {
         // with a frequency of 6,06689453125 Hz, what  makes sense with the difference 
         // in the information on the datasheets.
         
-        // The first array is used when DVB=0 and the second array is used when DVB=1.
+        // The first array is used when DVB=0 and the second array is used when DVB=1. (two different tables)
         vibratoTable = new double[2][8192];
         
         final double semitone = Math.pow(2,1/12d);
@@ -1435,7 +1489,7 @@ class OPL3Data {
         // The OPL3 tremolo repetition rate is 3.7 Hz.  
         final double tremoloFrequency = 3.7;
         
-        // The tremolo depth is -1 dB when DAM = 0, and -4.8 dB when DAM = 1.
+        // The tremolo depth is -1 dB when DAM = 0, and -4.8 dB when DAM = 1. (two different tables)
         final double tremoloDepth[] = {-1, -4.8};
         
         //  According to the YMF278B manual's OPL3 section graph, 
@@ -1482,12 +1536,11 @@ class OPL3Data {
 
 
 //
-// Channel Data
-// 
-
-
+// Channel Data. sets up feedback values.
+//
 class ChannelData {
-    
+
+    //more offsets into the register of the opl3
     final static int
                 _2_KON1_BLOCK3_FNUMH2_Offset = 0xB0,
                 FNUML8_Offset = 0xA0,
@@ -1499,13 +1552,13 @@ class ChannelData {
 }
 
 
-//
-// Operator Data
-//
-
-
+/*
+ Operator Data.
+ Pre-computes and caches the waveforms. Implies you could modify and put in different waveforms if desired.
+*/
 class OperatorData {
-            
+
+    //the offset is the numerical offset into the ymf262 register. The register controls the sound
     final static int
         AM1_VIB1_EGT1_KSR1_MULT4_Offset = 0x20,
         KSL2_TL6_Offset = 0x40,
@@ -1516,9 +1569,11 @@ class OperatorData {
     enum type {NO_MODULATION, CARRIER, FEEDBACK};
     
     final static int waveLength = 1024;
-    
+
+    //16 values
     final static double[] multTable = {0.5,1,2,3,4,5,6,7,8,9,10,10,12,12,15,15};
-    
+
+    //3dB table - implies something about volume double. pre-computed for speed, I imagine.
     final static double[][] ksl3dBtable = {
         {0,0,0,0,0,0,0,0},
         {0,0,0,0,0,-3,-6,-9},
@@ -1542,11 +1597,15 @@ class OperatorData {
     };
     
     static double[][] waveforms;
-    
+
+    //static initializer to pre-load the waveforms. opl3 has 8 waveforms as opposed to 4 in the opl2
     static {
         OperatorData.loadWaveforms();        
     }
-    
+
+    /*
+    The waveforms are pre-computed.
+     */
     private static void loadWaveforms() {
         //OPL3 has eight waveforms:
         waveforms = new double[8][waveLength];
@@ -1596,21 +1655,18 @@ class OperatorData {
         }
         
     }  
-    
+
     static double log2(double x) {
         return Math.log(x)/Math.log(2);
     }    
 }
 
 
-//
-// Envelope Generator Data
-//
-
-
+/*
+ Envelope Generator Data. Why static?? why not adjustable so sounds can be changed?
+*/
 class EnvelopeGeneratorData {
-    
-    final static double INFINITY = 1f/0f;
+
     // This table is indexed by the value of Operator.ksr 
     // and the value of ChannelRegister.keyScaleNumber.
     final static int[][] rateOffset = {
@@ -1621,7 +1677,8 @@ class EnvelopeGeneratorData {
     // The attack actual rates range from 0 to 63, with different data for 
     // 0%-100% and for 10%-90%: 
     final static double[][] attackTimeValuesTable = {
-            {INFINITY,INFINITY},    {INFINITY,INFINITY},    {INFINITY,INFINITY},    {INFINITY,INFINITY},
+            {Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY},    {Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY},
+            {Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY},    {Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY},
             {2826.24,1482.75}, {2252.80,1155.07}, {1884.16,991.23}, {1597.44,868.35},
             {1413.12,741.38}, {1126.40,577.54}, {942.08,495.62}, {798.72,434.18},
             {706.56,370.69}, {563.20,288.77}, {471.04,247.81}, {399.36,217.09},
@@ -1646,7 +1703,8 @@ class EnvelopeGeneratorData {
     // The rate index range from 0 to 63, with different data for 
     // 0%-100% and for 10%-90%: 
     final static double[][] decayAndReleaseTimeValuesTable = {
-            {INFINITY,INFINITY},    {INFINITY,INFINITY},    {INFINITY,INFINITY},    {INFINITY,INFINITY},
+            {Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY},    {Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY},
+            {Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY},    {Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY},
             {39280.64,8212.48}, {31416.32,6574.08}, {26173.44,5509.12}, {22446.08,4730.88},
             {19640.32,4106.24}, {15708.16,3287.04}, {13086.72,2754.56}, {11223.04,2365.44},
             {9820.16,2053.12}, {7854.08,1643.52}, {6543.36,1377.28}, {5611.52,1182.72},

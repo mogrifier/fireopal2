@@ -21,8 +21,13 @@ abstract class CmidPlayer_h {
     int[] adlib_data = new int[256];
     int adlib_style;
     int adlib_mode;
-    int[][] myinsbank = new int[128][16];
-    int[][] smyinsbank = new int[128][16];
+
+    //let's screw with these in realtime!!
+    public int[][] myinsbank = new int[128][16];
+    public int[][] smyinsbank = new int[128][16];
+
+
+
     CmidPlayer_h.midi_channel[] ch = new CmidPlayer_h.midi_channel[16];
     int[][] chp = new int[18][3];
     long deltas;
@@ -48,6 +53,7 @@ abstract class CmidPlayer_h {
     abstract float getrefresh();
 
     abstract String gettype();
+
 
     StringBuffer gettitle() {
         return this.title;

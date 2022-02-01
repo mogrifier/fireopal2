@@ -23,6 +23,7 @@ class CdroPlayer extends CdroPlayer_h implements CPlayer {
         this.opl3_mode = 0;
     }
 
+
     public boolean load(byte[] var1) throws FileNotFoundException, IOException {
         ByteArrayInputStream var2 = new ByteArrayInputStream(var1);
         StringBuffer var3 = new StringBuffer();

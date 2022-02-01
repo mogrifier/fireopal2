@@ -55,6 +55,22 @@ class CmidPlayer extends CmidPlayer_h implements CPlayer {
 
     }
 
+    public int[][] getMyInsBank() {
+        return this.myinsbank;
+    }
+
+    public int[][] getSMyInsBank() {
+        return this.smyinsbank;
+    }
+
+    public void setSMyInsBank(int[][] bank) {
+        this.smyinsbank = bank;
+    }
+
+    public void setMyInsBank(int[][] bank) {
+        this.myinsbank = bank;
+    }
+
     int datalook(long var1) {
         return var1 >= 0L && var1 < this.flen ? this.data[(int) var1] : 0;
     }
@@ -255,11 +271,20 @@ class CmidPlayer extends CmidPlayer_h implements CPlayer {
         }
     }
 
+
+    /*
+    Data entry point to the OPL3.write method.
+     */
     void midi_write_adlib(int var1, int var2) {
+
         this.opl.write(0, var1, var2);
         this.adlib_data[var1] = var2;
     }
 
+    /*
+    Writes data to OPL3 for a given instrument. How many of the trigger per call?? Quite a few.
+    Unclear how a single pair of values creates instrument. Ultimately writes 11 or 12 pairs.
+     */
     void midi_fm_instrument(int var1, int[] var2) {
         if ((this.adlib_style & 8) != 0) {
             this.midi_write_adlib(189, 0);
@@ -295,6 +320,9 @@ class CmidPlayer extends CmidPlayer_h implements CPlayer {
         this.midi_write_adlib(192 + var1, 240 | var2[10]);
     }
 
+    /*
+    Writes data to OPL3 for playing a drum.
+     */
     void midi_fm_percussion(int var1, int[] var2) {
         int var3 = map_chan[var1 - 12];
         this.midi_write_adlib(32 + var3, var2[0]);
@@ -305,6 +333,9 @@ class CmidPlayer extends CmidPlayer_h implements CPlayer {
         this.midi_write_adlib(192 + var3, 240 | var2[10]);
     }
 
+    /*
+    Writes data to OPL3 for volume control
+     */
     void midi_fm_volume(int var1, int var2) {
         if ((this.adlib_style & 8) == 0) {
             int var3 = var2 >> 2;
@@ -325,6 +356,9 @@ class CmidPlayer extends CmidPlayer_h implements CPlayer {
 
     }
 
+    /*
+    Plays a note based on a midi note on.
+     */
     void midi_fm_playnote(int var1, int var2, int var3) {
         if (var2 < 0) {
             var2 = 12 - var2 % 12;
@@ -342,6 +376,9 @@ class CmidPlayer extends CmidPlayer_h implements CPlayer {
         this.midi_write_adlib(176 + var1, this.adlib_data[176 + var1] & 223);
     }
 
+    /*
+    I guess these values clear/reset the ymf262 registers
+     */
     void midi_fm_reset() {
         int var1;
         for (var1 = 0; var1 < 256; ++var1) {
@@ -356,6 +393,9 @@ class CmidPlayer extends CmidPlayer_h implements CPlayer {
         this.midi_write_adlib(189, 192);
     }
 
+    /*
+    This is writing data to the OPL3 emulator.
+     */
     public boolean update() {
         int var19 = 0;
         if (this.doing == 1) {
@@ -739,6 +779,10 @@ class CmidPlayer extends CmidPlayer_h implements CPlayer {
         return this.fwait > 0.01F ? this.fwait : 0.01F;
     }
 
+    /*
+    Called at time of loading the bytes from music file into the system. Odd name- really is an
+    initializer for much of the OPL3 emulator. So what happens if you change myinsbank dynamically??
+     */
     public void rewind(int var1) {
         int[] var14 = new int[16];
         this.pos = 0L;
@@ -750,6 +794,8 @@ class CmidPlayer extends CmidPlayer_h implements CPlayer {
         long var4;
         for (var2 = 0L; var2 < 128L; ++var2) {
             for (var4 = 0L; var4 < 14L; ++var4) {
+
+                //loads the fm instruments from static array into the instrument bank
                 this.myinsbank[(int) var2][(int) var4] = this.midi_fm_instruments[(int) var2][(int) var4];
             }
 
